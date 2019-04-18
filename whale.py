@@ -1,12 +1,9 @@
-# Read or generate p2h, a dictionary of image name to image id (picture to hash)
 import pickle
 import platform
 import random
-# Suppress annoying stderr output when importing keras.
 import sys
 from lap import lapjv
 from math import sqrt
-# Determine the size of each image
 from os.path import isfile
 
 import keras
@@ -111,15 +108,13 @@ else:
                 if s1 < s2: s1, s2 = s2, s1
                 h2h[s1] = s2
 
-    # Group together images with equivalent phash, and replace by string format of phash (faster and more readable)
+    # Group together images with equivalent phash, and replace by string format of phash, faster.
     for p, h in p2h.items():
         h = str(h)
         if h in h2h:
             h = h2h[h]
         p2h[p] = h
 
-#     with open(P2H, 'wb') as f:
-#         pickle.dump(p2h, f)
 # For each image id, determine the list of pictures
 h2ps = {}
 for p, h in p2h.items():
@@ -163,7 +158,7 @@ for h, ps in h2ps.items():
     h2p[h] = prefer(ps)
 len(h2p), list(h2p.items())[:5]
 
-# Read the bounding box data from the bounding box kernel (see reference above)
+# Read the bounding box data
 p2bb = pd.read_csv(BB_DF).set_index("Image")
 
 old_stderr = sys.stderr
@@ -174,19 +169,6 @@ sys.stderr = old_stderr
 img_shape = (384, 384, 1)  # The image shape used by the model
 anisotropy = 2.15  # The horizontal compression ratio
 crop_margin = 0.05  # The margin added around the bounding box to compensate for bounding box inaccuracy
-
-# Read the bounding box data from the bounding box kernel (see reference above)
-p2bb = pd.read_csv(BB_DF).set_index("Image")
-
-old_stderr = sys.stderr
-sys.stderr = open('/dev/null' if platform.system() != 'Windows' else 'nul', 'w')
-
-sys.stderr = old_stderr
-
-img_shape = (384, 384, 1)  # The image shape used by the model
-anisotropy = 2.15  # The horizontal compression ratio
-crop_margin = 0.05  # The margin added around the bounding box to compensate for bounding box inaccuracy# Read the bounding box data from the bounding box kernel
-p2bb = pd.read_csv(BB_DF).set_index("Image")
 
 
 def build_transform(rotation, shear, height_zoom, width_zoom, height_shift, width_shift):
@@ -295,11 +277,11 @@ p = list(tagged.keys())[312]
 def subblock(x, filter, **kwargs):
     x = BatchNormalization()(x)
     y = x
-    y = Conv2D(filter, (1, 1), activation='relu', **kwargs)(y)  # Reduce the number of features to 'filter'
+    y = Conv2D(filter, (1, 1), activation='relu', **kwargs)(y)   # Reduce the number of features to 'filter'
     y = BatchNormalization()(y)
-    y = Conv2D(filter, (3, 3), activation='relu', **kwargs)(y)  # Extend the feature field
+    y = Conv2D(filter, (3, 3), activation='relu', **kwargs)(y)   # Extend the feature field
     y = BatchNormalization()(y)
-    y = Conv2D(K.int_shape(x)[-1], (1, 1), **kwargs)(y)  # no activation # Restore the number of original features
+    y = Conv2D(K.int_shape(x)[-1], (1, 1), **kwargs)(y)  	 # Restore the number of original features
     y = Add()([x, y])  # Add the bypass connection
     y = Activation('relu')(y)
     return y
@@ -448,7 +430,7 @@ class TrainingData(Sequence):
             for i in idxs:
                 for j in idxs:
                     self.score[
-                        i, j] = 10000.0  # Set a large value for matching whales -- eliminates this potential pairing
+                        i, j] = 10000.0  # Set a large value for matching whales to eliminates this potential pairing
         self.on_epoch_end()
 
     def __getitem__(self, index):
@@ -463,7 +445,7 @@ class TrainingData(Sequence):
         for i in range(0, size, 2):
             a[i, :, :, :] = read_for_training(self.match[j][0])
             b[i, :, :, :] = read_for_training(self.match[j][1])
-            c[i, 0] = 1  # This is a match
+            c[i, 0] = 1      # This is a match
             a[i + 1, :, :, :] = read_for_training(self.unmatch[j][0])
             b[i + 1, :, :, :] = read_for_training(self.unmatch[j][1])
             c[i + 1, 0] = 0  # Different whales
